@@ -1,6 +1,6 @@
 node_modules/
 .cache/
 .idea/
-.cache
 .github
-yarn.lock
+.env
+*.log
