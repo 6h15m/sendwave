@@ -1,0 +1,55 @@
+{
+  "name": "name",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
+    "react-scripts": "5.0.0",
+    "tailwindcss": "^3.0.23",
+    "web-vitals": "^2.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^4.4.2",
+    "@testing-library/jest-dom": "^5.14.1",
+    "@testing-library/react": "^12.0.0",
+    "@testing-library/user-event": "^13.2.1",
+    "@types/jest": "^27.0.1",
+    "@types/node": "^16.7.13",
+    "@types/react": "^17.0.20",
+    "@types/react-dom": "^17.0.9",
+    "@typescript-eslint/eslint-plugin": "^5.18.0",
+    "@typescript-eslint/parser": "^5.18.0",
+    "prettier": "^2.6.2"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "yarn run build:css && react-scripts build",
+    "build:css": "tailwindcss -i src/styles/tailwind.css -o ./dist/tailwind.css --watch\\\\n",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
+    "predeploy": "yarn build",
+    "check:lint": "eslint . --ext .ts,.tsx",
+    "fix:lint": "eslint . --fix --ext .ts,.tsx",
+    "check:prettier": "prettier -c .",
+    "fix:prettier": "prettier -c --write ."
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}

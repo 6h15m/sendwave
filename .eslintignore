@@ -1,0 +1,8 @@
+node_modules/
+.cache/
+.idea/
+.cache
+.github
+yarn.lock
+public
+tailwind.css
