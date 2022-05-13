@@ -8,9 +8,11 @@ import {
   OpenChannelModule,
 } from "@sendbird/chat/openChannel";
 import {
-  BaseMessage,
+  UserMessage,
   MessageListParams,
   MessageModule,
+  UserMessageCreateParams,
+  UserMessageUpdateParams,
 } from "@sendbird/chat/message";
 import { ModuleNamespaces } from "@sendbird/chat/lib/__definition";
 
@@ -26,11 +28,14 @@ export const Main = () => {
   const [userNameInputValue, setUserNameInputValue] = useState<string>("");
 
   const [channels, setChannels] = useState<Array<OpenChannel>>([]);
-  const [messages, setMessages] = useState<Array<BaseMessage>>([]);
+  const [messages, setMessages] = useState<Array<UserMessage>>([]);
   const [currentlyJoinedChannel, setCurrentlyJoinedChannel] =
     useState<OpenChannel | null>(null);
 
   const [messageInputValue, setMessageInputValue] = useState<string>("");
+  const [messageToUpdate, setMessageToUpdate] = useState<UserMessage | null>(
+    null,
+  );
 
   const [channelNameInputValue, setChannelNameInputValue] =
     useState<string>("");
@@ -103,13 +108,17 @@ export const Main = () => {
         (item) => item.messageId == message.messageId,
       );
       const updatedMessages = messages;
-      updatedMessages[messageIndex] = message;
+      if (message instanceof UserMessage) {
+        updatedMessages[messageIndex] = message;
+      }
       setMessages(updatedMessages);
     };
 
     channelHandler.onMessageReceived = (channel, message) => {
-      const updatedMessages = [...messages, message];
-      setMessages(updatedMessages);
+      if (message instanceof UserMessage) {
+        const updatedMessages = [...messages, message];
+        setMessages(updatedMessages);
+      }
     };
 
     channelHandler.onMessageDeleted = (channel, message) => {
@@ -162,6 +171,40 @@ export const Main = () => {
     event: React.ChangeEvent<HTMLInputElement>,
   ): void => {
     setMessageInputValue(event.target.value);
+  };
+
+  const handleClickSendBtn = async (): Promise<void> => {
+    if (currentlyJoinedChannel == null) {
+      throw new Error(`There is no joined channel! :(`);
+    }
+
+    if (messageToUpdate != null) {
+      const updatedMessage = await currentlyJoinedChannel.updateUserMessage(
+        messageToUpdate.messageId,
+        new UserMessageUpdateParams({ message: messageInputValue }),
+      );
+      const messageIndex = messages.findIndex(
+        (item) => item.messageId == messageToUpdate.messageId,
+      );
+      messages[messageIndex] = updatedMessage;
+      setMessages(messages);
+      setMessageInputValue("");
+      setMessageToUpdate(null);
+    } else {
+      const userMessageParams = new UserMessageCreateParams();
+      userMessageParams.message = messageInputValue;
+      currentlyJoinedChannel
+        .sendUserMessage(userMessageParams)
+        .onSucceeded((message) => {
+          if (message instanceof UserMessage) {
+            setMessages((prevState) => [...prevState, message]);
+          }
+          setMessageInputValue("");
+        })
+        .onFailed(() => {
+          throw new Error(`Can't send message. :(`);
+        });
+    }
   };
 
   return (
@@ -236,17 +279,53 @@ export const Main = () => {
                     {currentlyJoinedChannel.name} Channel
                   </h3>
                 </div>
-                <div className="h-0 flex-grow">
-                  {messages.map((message) => {
-                    return <>{message.data}</>;
-                  })}
+                <div className="h-0 p-6 flex-grow">
+                  <ul className="w-full h-full flex flex-col gap-y-4 overflow-y-auto">
+                    {messages.map((message) => {
+                      if (message.sender.userId !== sb.currentUser.userId) {
+                        return (
+                          <li className="w-full h-20 flex flex-col gap-y-1">
+                            <span>{message.sender.nickname}</span>
+                            <div className="w-full h-full flex gap-x-2 items-end">
+                              <div className="w-fit h-full p-4 text-stone-50 bg-stone-800 rounded">
+                                {message.message}
+                              </div>
+                              <span className="opacity-50">
+                                {message.createdAt}
+                              </span>
+                            </div>
+                          </li>
+                        );
+                      } else {
+                        return (
+                          <li className="w-full h-20 flex flex-col items-end gap-y-1">
+                            <span>{message.sender.nickname}</span>
+                            <div className="w-full h-full gap-x-2 flex justify-end items-end">
+                              <span className="opacity-50">
+                                {message.createdAt}
+                              </span>
+                              <div className="w-fit h-full p-4 text-stone-50 bg-stone-400 rounded">
+                                {message.message}
+                              </div>
+                            </div>
+                          </li>
+                        );
+                      }
+                    })}
+                  </ul>
                 </div>
                 <div className="w-full h-24 p-4 gap-x-2 flex items-center justify-between">
                   <input
                     className="w-full h-full p-2 border border-stone-800 bg-transparent"
+                    type="text"
+                    placeholder="Enter Message"
+                    value={messageInputValue}
                     onChange={handleChangeMessageInput}
                   />
-                  <button className="w-40 h-full text-stone-50 bg-stone-800">
+                  <button
+                    className="w-40 h-full text-stone-50 bg-stone-800"
+                    onClick={handleClickSendBtn}
+                  >
                     Send
                   </button>
                 </div>
@@ -315,7 +394,7 @@ const loadChannels = async (): Promise<
 const joinChannel = async (params: {
   channel: OpenChannel;
 }): Promise<
-  | { channel: OpenChannel; messages: Array<BaseMessage>; error: null }
+  | { channel: OpenChannel; messages: Array<UserMessage>; error: null }
   | { channel: null; messages: null; error: unknown }
 > => {
   try {
@@ -323,10 +402,10 @@ const joinChannel = async (params: {
 
     const messageListParams = new MessageListParams();
     messageListParams.nextResultSize = 20;
-    const messages = await params.channel.getMessagesByTimestamp(
+    const messages = (await params.channel.getMessagesByTimestamp(
       0,
       messageListParams,
-    );
+    )) as Array<UserMessage>;
     return { channel: params.channel, messages, error: null };
   } catch (error) {
     return { channel: null, messages: null, error };
