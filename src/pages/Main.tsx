@@ -10,17 +10,11 @@ import {
 import {
   UserMessage,
   MessageListParams,
-  MessageModule,
   UserMessageCreateParams,
   UserMessageUpdateParams,
 } from "@sendbird/chat/message";
-import { ModuleNamespaces } from "@sendbird/chat/lib/__definition";
 
-let sb: SendbirdChat &
-  ModuleNamespaces<
-    [...OpenChannelModule[], MessageModule],
-    MessageModule | OpenChannelModule
-  >;
+let sb: ReturnType<typeof SendbirdChat.init<OpenChannelModule[]>>;
 
 export const Main = () => {
   const [settingUpUser, setSettingUpUser] = useState<boolean>(true);
